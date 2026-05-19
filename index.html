@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chao Xu - Mobile OS Performance Infrastructure & Graphics Runtime Architect</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <style>
+        /* A4 纸张物理尺寸及打印强制约束 */
+        @page {
+            size: A4;
+            margin: 0 !important; /* 强制通知打印机去掉默认边距 */
+        }
+        @media print {
+            /* 1. 强制锁死 html 和 body 尺寸，彻底斩断任何因系统字体精度造成的微小溢出 */
+            html, body {
+                margin: 0 !important;
+                padding: 0 !important;
+                height: 296mm !important; /* 主动缩短1mm作为安全缓冲 */
+                overflow: hidden !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+                page-break-inside: avoid !important; /* 强制禁止内部发生分页行为 */
+            }
+            /* 2. 隐藏控制台按钮 */
+            .no-print { display: none !important; }
+            
+            .resume-page {
+                width: 210mm !important;
+                height: 296mm !important; /* 主动缩短1mm作为安全缓冲 */
+                margin: 0 !important;
+                box-shadow: none !important;
+                overflow: hidden !important;
+                background-color: white !important;
+                page-break-after: avoid !important;
+                page-break-inside: avoid !important;
+            }
+        }
+        body { background-color: #f3f4f6; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+        .resume-page {
+            width: 210mm;
+            height: 297mm;
+            background: #fff;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            overflow: hidden;
+            position: relative;
+        }
+        /* 严苛控制高密度一页纸的文本行高与字号 */
+        .text-dense { font-size: 11.5px; line-height: 1.5; }
+        .text-dense-title { font-size: 13.5px; font-weight: 700; }
+
+        /* 头像全矢量精细定位器：正方形 + 圆角，强制大图等比无损缩小 */
+        .avatar-crop {
+            background-image: url('avatar.jpg');
+            /* 防御性设计：使用 cover 结合物理盒子尺寸，确保不管几千万像素的大图都能等比缩放到合适尺寸显示 */
+            background-size: cover; 
+            background-position: center 25%; /* 针对演讲现场半身照进行比例调校，保留头部视觉核心 */
+            background-repeat: no-repeat;
+            border-radius: 10px; /* 正方形 + 优雅微圆角 */
+            border: 1px solid #e2e8f0; /* 添加细框线界定区域 */
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05); /* 轻微阴影增加质感 */
+        }
+    </style>
+</head>
+<body class="p-0 m-0">
+
+    <div class="no-print w-full max-w-[210mm] mx-auto my-4 flex justify-end gap-3 bg-transparent">
+        <button id="btn-layout" onclick="toggleLayout()" class="px-4 py-1.5 text-xs font-medium border border-gray-400 rounded text-gray-700 hover:bg-gray-200 transition cursor-pointer">
+            布局(左右)
+        </button>
+        <button id="btn-lang" onclick="toggleLang()" class="px-4 py-1.5 text-xs font-medium border border-gray-400 rounded text-gray-700 hover:bg-gray-200 transition cursor-pointer">
+            英文
+        </button>
+        <button id="btn-print" onclick="window.print()" class="px-4 py-1.5 text-xs font-medium border border-gray-400 rounded text-gray-700 hover:bg-gray-200 transition cursor-pointer">
+            打印
+        </button>
+    </div>
+
+    <div id="resume-container" class="resume-page mx-auto mb-10 transition-all duration-300">
+    </div>
+
+    <script>
+        // 基于最终版原始素材对齐的双语高密数据集
+        const resumeData = {
+            en: {
+                name: "Chao Xu",
+                title: "Mobile OS Performance Infrastructure & Graphics Runtime Architect",
+                contact: { email: "chao.xu@yahoo.com", phone: "+86 13636402489" },
+                summary: "Technical expert in mobile OS performance infrastructure and graphics runtime systems, with deep experience in graphics rendering pipelines, memory allocators, concurrent execution, cold-start optimization, power-efficient runtime systems, and networking system software. Earlier experience at ZTE and Cisco focused on Linux-based router platforms, networking protocols, and high-reliability communication systems. At Huawei, focused on HarmonyOS / OpenHarmony graphics, windowing, memory allocation, execution engines, and system performance infrastructure. Guided and collaborated on three top-tier systems papers at ASPLOS’25, OSDI’25, and OSDI’26, with first authors from my innovation team, and led the production deployment of two related technologies in HarmonyOS / OpenHarmony.",
+                focusTitle: "Technical Focus",
+                focus: "Mobile OS Performance Infrastructure · Graphics Rendering Pipeline · VSync Scheduling · Memory Allocators · Runtime Systems · Cold-Start Optimization · Concurrent Memory Issue Analysis · Power-Efficient Rendering · Systems Research Translation",
+                achievementsTitle: "Selected Achievements",
+                achievements: [
+                    {
+                        title: "D-VSync: Decoupled Rendering and Displaying for Smartphone Graphics",
+                        body: "Guided the D-VSync research work and led production deployment in HarmonyOS. The technology reduces rendering stalls and display frame drops under graphics workload fluctuations such as scrolling, animations, and Web rendering. It eliminated around <strong>70%</strong> of scroll-related frame drops and improved overall dynamic performance by <strong>10%+</strong> across multiple HarmonyOS releases. Related paper published at <strong>ASPLOS’25</strong>."
+                    },
+                    {
+                        title: "Mobile-Oriented High-Performance Memory Allocator",
+                        body: "Led the design, stabilization, and commercialization of dfmalloc for mobile graphics services, system services, and application startup scenarios. Reduced Render Service CPU load by <strong>15%</strong> and system-wide CPU load by <strong>5.5%</strong>; improved cold-start latency by <strong>150ms+</strong> on average on Nova 8G devices. Related paper published at <strong>OSDI’26</strong>."
+                    },
+                    {
+                        title: "Graphics Runtime and Parallel Rendering Infrastructure",
+                        body: "Contributed to HarmonyOS graphics pipeline parallelization, lightweight rendering engine, distributed graphics foundation, and SDF-based animation infrastructure. Proposed the lightweight frame interpolation and super-resolution direction, guiding the team toward FiSR commercialization with <strong>15%+</strong> per-frame power reduction in top mobile games."
+                    }
+                ],
+                experienceTitle: "Professional Experience",
+                experience: [
+                    { company: "Huawei", period: "2018 - Present", role: "Technical Expert, HarmonyOS Performance Infrastructure" },
+                    { company: "Cisco", period: "2012 - 2018", role: "Senior Engineer, Router Platform" },
+                    { company: "ZTE", period: "2007 - 2012", role: "Senior Engineer, Router Product Development" }
+                ],
+                publicationsTitle: "Publications",
+                publications: [
+                    "<strong>D-VSync: Decoupled Rendering and Displaying for Smartphone Graphics</strong>, ASPLOS’25",
+                    "<strong>OS Rendering Service Made Parallel with Out-of-Order Execution and In-Order Commit</strong>, OSDI’25",
+                    "<strong>jwmalloc: A Verified Memory Allocator for Mobile Devices</strong>, OSDI’26"
+                ],
+                impactTitle: "Technical Impact",
+                impact: "OpenHarmony Concurrency and Collaboration TSG member and recipient of the OpenHarmony 2025 Starlight Contributor award. Received multiple company-level recognitions, including first prizes in innovation competitions, President Award, Gold Team Award, and key technology achievement awards for device software business value."
+            },
+            zh: {
+                name: "徐超 / Chao Xu",
+                title: "端侧操作系统高性能基础设施与图形运行时专家",
+                contact: { email: "chao.xu@yahoo.com", phone: "+86 13636402489" },
+                summary: "端侧操作系统高性能基础设施与图形运行时方向技术专家，长期从事系统软件研发，技术方向覆盖图形渲染管线、内存分配器、并发执行、冷启动优化、低功耗运行时系统和网络系统软件。早期在中兴通讯、思科参与 Linux 路由器平台、网络协议和高可靠通信系统研发；加入华为后，长期聚焦 HarmonyOS 图形视窗、内存分配、执行引擎和系统性能底座建设。指导并合作完成 ASPLOS’25、OSDI’25、OSDI’26 三篇系统方向顶会论文，一作均来自本人创新团队实习生，并主导其中 2 项相关技术在 HarmonyOS 中商业落地。",
+                focusTitle: "核心技术方向",
+                focus: "端侧 OS 高性能基础设施 · 图形渲染管线 · VSync 调度 · 内存分配器 · 运行时系统 · Cold-Start Optimization · 并发内存问题分析 · 低功耗渲染 · 系统研究工程转化",
+                achievementsTitle: "代表性成果",
+                achievements: [
+                    {
+                        title: "D-VSync：移动端渲染显示解耦架构",
+                        body: "指导 D-VSync 研究工作，并主导相关技术在 HarmonyOS 中商业落地。该技术面向滑动、动画、Web 等图形负载波动场景，降低渲染阻塞和显示丢帧风险，消除约 <strong>70%</strong> 滑动卡顿丢帧，支撑多个 HarmonyOS 版本整机动态性能提升 <strong>10%+</strong>。相关论文发表于 <strong>ASPLOS’25</strong>。"
+                    },
+                    {
+                        title: "移动端高性能内存分配器",
+                        body: "负责 dfmalloc 方案设计、稳定性和商用落地，面向移动端图形服务、系统服务、应用冷启动场景优化内存分配路径与系统 CPU 负载。支撑 Render Service 负载优化 <strong>15%</strong>、整机 CPU 负载优化 <strong>5.5%</strong>；在 Nova 8G 等产品支撑冷启动平均优化 <strong>150ms+</strong>。相关论文发表于 <strong>OSDI’26</strong>。"
+                    },
+                    {
+                        title: "图形运行时与并行渲染基础设施",
+                        body: "参与 HarmonyOS 图形流水并行渲染架构、轻量渲染引擎、分布式图形 Foundation、SDF 动效底座等方向建设。提出轻量插帧超分技术方向，指导团队推进 FiSR 商用落地，在 TOP 游戏场景实现单帧功耗优化 <strong>15%+</strong>。"
+                    }
+                ],
+                experienceTitle: "工作经历",
+                experience: [
+                    { company: "华为", period: "2018 - 至今", role: "技术专家，HarmonyOS 高性能基础设施方向" },
+                    { company: "思科", period: "2012 - 2018", role: "Senior Engineer，路由器平台方向" },
+                    { company: "中兴通讯", period: "2007 - 2012", role: "Senior Engineer，路由器产品方向" }
+                ],
+                publicationsTitle: "论文",
+                publications: [
+                    "<strong>D-VSync: Decoupled Rendering and Displaying for Smartphone Graphics</strong>，ASPLOS’25",
+                    "<strong>OS Rendering Service Made Parallel with Out-of-Order Execution and In-Order Commit</strong>，OSDI’25",
+                    "<strong>jwmalloc: A Verified Memory Allocator for Mobile Devices</strong>，OSDI’26"
+                ],
+                impactTitle: "技术影响力",
+                impact: "OpenHarmony 并发与协同 TSG 成员，获开源鸿蒙 2025 年度星光贡献者。多次获得公司级创新大赛一等奖、总裁奖、金牌团队奖、终端商业价值关键技术成果等技术相关奖项。"
+            }
+        };
+
+        // 默认单栏布局
+        let currentLang = 'zh'; 
+        let currentLayout = 'single'; 
+
+        function toggleLang() {
+            currentLang = currentLang === 'zh' ? 'en' : 'zh';
+            document.getElementById('btn-lang').innerText = currentLang === 'zh' ? '英文' : '中文';
+            document.getElementById('btn-print').innerText = currentLang === 'zh' ? '打印' : 'Print';
+            renderResume();
+        }
+
+        function toggleLayout() {
+            currentLayout = currentLayout === 'split' ? 'single' : 'split';
+            // 同步修正控制按钮的文本提示状态
+            document.getElementById('btn-layout').innerText = currentLayout === 'split' ? '布局(单栏)' : '布局(左右)';
+            renderResume();
+        }
+
+        function renderResume() {
+            const data = resumeData[currentLang];
+            const container = document.getElementById('resume-container');
+            container.innerHTML = '';
+
+            // 初始化控制栏按钮文字
+            document.getElementById('btn-layout').innerText = currentLayout === 'single' ? '布局(左右)' : '布局(单栏)';
+
+            if (currentLayout === 'split') {
+                container.innerHTML = `
+                    <div class="w-full h-full flex text-dense text-slate-800">
+                        <div class="w-[32%] bg-white text-slate-700 h-full pt-6 pb-4.5 px-4.5 border-r border-slate-200 overflow-hidden">
+                            <div class="mb-4 text-left">
+                                <div class="avatar-crop w-16 h-16 mb-3 shadow-sm"></div>
+                                <h1 class="text-xl font-bold text-slate-900 tracking-tight leading-tight">${data.name}</h1>
+                                <p class="text-[10px] text-blue-900 font-bold mt-1 uppercase tracking-wider leading-tight">${data.title}</p>
+                            </div>
+                            
+                            <div class="space-y-1 text-[10.5px] text-slate-600 mb-5 border-b border-slate-200 pb-3">
+                                <p>✉️ ${data.contact.email}</p>
+                                <p>📱 ${data.contact.phone}</p>
+                            </div>
+                            
+                            <div class="mb-5">
+                                <h2 class="text-xs font-bold text-blue-950 uppercase tracking-wider border-b border-slate-300 pb-1 mb-2">${data.focusTitle}</h2>
+                                <p class="text-[10.5px] text-slate-600 leading-relaxed">${data.focus}</p>
+                            </div>
+                            
+                            <div class="mb-5">
+                                <h2 class="text-xs font-bold text-blue-950 uppercase tracking-wider border-b border-slate-300 pb-1 mb-2">${data.publicationsTitle}</h2>
+                                <div class="space-y-2 text-[10px] text-slate-400 leading-snug">
+                                    ${data.publications.map((p, i) => `<p><strong>[${i+1}]</strong> ${p}</p>`).join('')}
+                                </div>
+                            </div>
+                            
+                            <div>
+                                <h2 class="text-xs font-bold text-blue-950 uppercase tracking-wider border-b border-slate-300 pb-1 mb-2">${data.impactTitle}</h2>
+                                <p class="text-[10px] text-slate-400 text-justify leading-relaxed">${data.impact}</p>
+                            </div>
+                        </div>
+                        
+                        <div class="w-[68%] h-full pt-6 pb-5 px-5 bg-white overflow-hidden">
+                            <div class="mb-4">
+                                <h2 class="text-dense-title uppercase tracking-wide text-slate-900 border-b-2 border-slate-900 pb-0.5 mb-1.5">Summary</h2>
+                                <p class="text-slate-600 text-justify leading-relaxed">${data.summary}</p>
+                            </div>
+                            
+                            <div class="mb-4">
+                                <h2 class="text-dense-title uppercase tracking-wide text-slate-900 border-b-2 border-slate-900 pb-0.5 mb-2">${data.achievementsTitle}</h2>
+                                <div class="space-y-3">
+                                    ${data.achievements.map(a => `
+                                        <div>
+                                            <h3 class="font-bold text-slate-900 text-[12px] mb-0.5">${a.title}</h3>
+                                            <p class="text-slate-600 text-justify leading-relaxed">${a.body}</p>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            </div>
+                            
+                            <div class="pt-1">
+                                <h2 class="text-dense-title uppercase tracking-wide text-slate-900 border-b-2 border-slate-900 pb-0.5 mb-2">${data.experienceTitle}</h2>
+                                <div class="space-y-2">
+                                    ${data.experience.map(exp => `
+                                        <div class="flex items-start justify-between gap-2">
+                                            <div class="flex-1">
+                                                <span class="font-bold text-slate-900 text-[12px]">${exp.company}</span>
+                                                <span class="text-slate-500 mx-1.5">|</span>
+                                                <span class="text-slate-600 text-[11.5px]">${exp.role}</span>
+                                            </div>
+                                            <span class="text-slate-500 text-[11px] font-mono whitespace-nowrap pt-0.5">${exp.period}</span>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            } else {
+                container.innerHTML = `
+                    <div class="w-full h-full p-6 bg-white text-dense text-slate-800 overflow-hidden">
+                        <div class="flex items-center justify-center gap-5 border-b-2 border-slate-900 pb-2 mb-3">
+                            <div class="avatar-crop w-16 h-16 shrink-0 shadow-sm"></div>
+                            <div class="text-left">
+                                <h1 class="text-2xl font-bold text-slate-900 tracking-tight">${data.name}</h1>
+                                <p class="text-xs font-bold text-blue-800 uppercase tracking-wide mt-0.5">${data.title}</p>
+                                <div class="flex gap-5 text-xs text-slate-600 mt-1 font-medium">
+                                    <span>✉️ ${data.contact.email}</span>
+                                    <span>📱 ${data.contact.phone}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <h2 class="text-dense-title uppercase tracking-wide text-slate-900 bg-slate-100 px-2 py-0.5 mb-1.5">Summary</h2>
+                            <p class="text-slate-600 text-justify px-1 leading-relaxed">${data.summary}</p>
+                        </div>
+
+                        <div class="mb-3">
+                            <h2 class="text-dense-title uppercase tracking-wide text-slate-900 bg-slate-100 px-2 py-0.5 mb-1.5">${data.focusTitle}</h2>
+                            <p class="text-slate-700 px-1 font-medium leading-relaxed">${data.focus}</p>
+                        </div>
+
+                        <div class="mb-3">
+                            <h2 class="text-dense-title uppercase tracking-wide text-slate-900 bg-slate-100 px-2 py-0.5 mb-2">${data.achievementsTitle}</h2>
+                            <div class="space-y-2.5 px-1">
+                                ${data.achievements.map(a => `
+                                    <div>
+                                        <h3 class="font-bold text-slate-900 text-[12px] mb-0.5">${a.title}</h3>
+                                        <p class="text-slate-600 text-justify leading-relaxed">${a.body}</p>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <h2 class="text-dense-title uppercase tracking-wide text-slate-900 bg-slate-100 px-2 py-0.5 mb-2">${data.experienceTitle}</h2>
+                            <div class="space-y-1.5 px-1">
+                                ${data.experience.map(exp => `
+                                    <div class="flex justify-between items-baseline">
+                                        <span class="text-[12px] font-bold text-slate-900">${exp.company} <span class="font-normal text-slate-500 mx-1">|</span> <span class="font-normal text-slate-600 text-[11.5px]">${exp.role}</span></span>
+                                        <span class="font-mono text-slate-500 text-[11px]">${exp.period}</span>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <h2 class="text-dense-title uppercase tracking-wide text-slate-900 bg-slate-100 px-2 py-0.5 mb-1.5">${data.publicationsTitle}</h2>
+                            <ul class="list-none space-y-1 text-[11px] text-slate-600 leading-snug px-1">
+                                ${data.publications.map((p, i) => `<li><strong>[${i+1}]</strong> ${p}</li>`).join('')}
+                            </ul>
+                        </div>
+
+                        <div>
+                            <h2 class="text-dense-title uppercase tracking-wide text-slate-900 bg-slate-100 px-2 py-0.5 mb-1.5">${data.impactTitle}</h2>
+                            <p class="text-slate-600 text-justify leading-relaxed px-1">${data.impact}</p>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        renderResume();
+    </script>
+</body>
+</html>
