@@ -45,20 +45,32 @@
             overflow: hidden;
             position: relative;
         }
+        /* PDF 导出时仅保留简历页面本身，移除网页展示阴影和外边距 */
+        body.pdf-exporting .resume-page {
+            width: 210mm !important;
+            height: 297mm !important;
+            margin: 0 !important;
+            box-shadow: none !important;
+            background: #fff !important;
+        }
         /* 严苛控制高密度一页纸的文本行高与字号 */
         .text-dense { font-size: 11.5px; line-height: 1.5; }
         .text-dense-title { font-size: 13.5px; font-weight: 700; }
 
-        /* 头像全矢量精细定位器：正方形 + 圆角，强制大图等比无损缩小 */
+        /* 头像：使用真实 img 元素，确保网页显示与 PDF 截图都能稳定捕获 */
         .avatar-crop {
-            background-image: url('avatar.jpg');
-            /* 防御性设计：使用 cover 结合物理盒子尺寸，确保不管几千万像素的大图都能等比缩放到合适尺寸显示 */
-            background-size: cover; 
-            background-position: center 25%; /* 针对演讲现场半身照进行比例调校，保留头部视觉核心 */
-            background-repeat: no-repeat;
-            border-radius: 10px; /* 正方形 + 优雅微圆角 */
-            border: 1px solid #e2e8f0; /* 添加细框线界定区域 */
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05); /* 轻微阴影增加质感 */
+            border-radius: 10px;
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            overflow: hidden;
+            background-color: #f8fafc;
+        }
+        .avatar-img {
+            width: 100%;
+            height: 100%;
+            display: block;
+            object-fit: cover;
+            object-position: center 25%;
         }
     </style>
 </head>
@@ -71,8 +83,8 @@
         <button id="btn-lang" onclick="toggleLang()" class="px-4 py-1.5 text-xs font-medium border border-gray-400 rounded text-gray-700 hover:bg-gray-200 transition cursor-pointer">
             English
         </button>
-        <button id="btn-print" onclick="window.print()" class="px-4 py-1.5 text-xs font-medium border border-gray-400 rounded text-gray-700 hover:bg-gray-200 transition cursor-pointer">
-            打印
+        <button id="btn-export" onclick="exportPdf()" class="px-4 py-1.5 text-xs font-medium border border-gray-400 rounded text-gray-700 hover:bg-gray-200 transition cursor-pointer">
+            导出PDF
         </button>
     </div>
 
@@ -86,7 +98,7 @@
                 name: "Chao Xu",
                 title: "Mobile OS Performance Infrastructure & Graphics Runtime Architect",
                 contact: { email: "chao.xu@yahoo.com", phone: "+86 13636402489" },
-                summary: "Technical expert in mobile OS performance infrastructure and graphics runtime systems, with deep experience in graphics rendering pipelines, memory allocators, concurrent execution, cold-start optimization, power-efficient runtime systems, and networking system software. Earlier experience at ZTE and Cisco focused on Linux-based router platforms, networking protocols, and high-reliability communication systems. At Huawei, focused on HarmonyOS / OpenHarmony graphics, windowing, memory allocation, execution engines, and system performance infrastructure. Guided and collaborated on three top-tier systems papers at ASPLOS’25, OSDI’25, and OSDI’26, with first authors from my innovation team, and led the production deployment of two related technologies in HarmonyOS / OpenHarmony.",
+                summary: "Technical expert in <strong>high-performance infrastructure and graphics runtime systems for mobile operating systems</strong>, with long-term experience in system software engineering. My technical focus spans graphics rendering pipelines, memory allocators, concurrent execution, cold-start optimization, low-power runtime systems, and networking software. Earlier in my career, I worked at ZTE and Cisco on Linux-based router platforms, networking protocols, and highly reliable communication systems. Since joining Huawei, I have focused on building performance-critical infrastructure for HarmonyOS, including graphics systems, memory allocation, execution engines, and system-level performance foundations.<br><br>I also led an innovation team responsible for incubating forward-looking system technologies, driving multiple strategic ideas from <strong>0-to-1 research exploration to product deployment</strong>. Mentored interns from the innovation team and contributed deeply to the research, resulting in three top-tier systems papers at <strong>ASPLOS’25, OSDI’25, and OSDI’26</strong>, while leading the commercialization of <strong>two related technologies in HarmonyOS</strong>.",
                 focusTitle: "Technical Focus",
                 focus: "Mobile OS Performance Infrastructure · Graphics Rendering Pipeline · VSync Scheduling · Memory Allocators · Runtime Systems · Cold-Start Optimization · Concurrent Memory Issue Analysis · Power-Efficient Rendering · Systems Research Translation",
                 achievementsTitle: "Selected Achievements",
@@ -104,6 +116,8 @@
                         body: "Contributed to HarmonyOS graphics pipeline parallelization, lightweight rendering engine, distributed graphics foundation, and SDF-based animation infrastructure. Proposed the lightweight frame interpolation and super-resolution direction, guiding the team toward FiSR commercialization with <strong>15%+</strong> per-frame power reduction in top mobile games."
                     }
                 ],
+                leadershipTitle: "Technical Leadership & Innovation Incubation",
+                leadership: "Served as the <strong>Innovation Team Lead (XM)</strong>, responsible for technical planning, team development, and incubation of strategic innovation directions within the Fields innovation program. Built an innovation model around <strong>multi-source technology input, dual talent/technology pipelines, small elite teams, rapid validation, and product deployment</strong>, combining academic and industry research, expert collaboration, and deep engagement with real product workloads.<br><br>During my tenure, the team incubated multiple large-scale technologies from <strong>0 to 1</strong>, achieving <strong>6 First Prizes and 4 Second/Third Prizes</strong> in the Innovation Pioneer program. <strong>Eight key technologies have been deployed into products and delivered significant business value, with one additional technology currently under productization</strong>, together with multiple high-potential patents and top-tier systems research outputs.",
                 experienceTitle: "Professional Experience",
                 experience: [
                     { company: "Huawei", period: "2018 - Present", role: "Technical Expert, HarmonyOS Performance Infrastructure" },
@@ -123,9 +137,9 @@
                 name: "徐超 / Chao Xu",
                 title: "端侧操作系统高性能基础设施与图形运行时专家",
                 contact: { email: "chao.xu@yahoo.com", phone: "+86 13636402489" },
-                summary: "端侧操作系统高性能基础设施与图形运行时方向技术专家，长期从事系统软件研发，技术方向覆盖图形渲染管线、内存分配器、并发执行、冷启动优化、低功耗运行时系统和网络系统软件。早期在中兴通讯、思科参与 Linux 路由器平台、网络协议和高可靠通信系统研发；加入华为后，长期聚焦 HarmonyOS 图形视窗、内存分配、执行引擎和系统性能底座建设。指导并合作完成 ASPLOS’25、OSDI’25、OSDI’26 三篇系统方向顶会论文，一作均来自本人创新团队实习生，并主导其中 2 项相关技术在 HarmonyOS 中商业落地。",
-                focusTitle: "技术方向",
-                focus: "端侧 OS 高性能基础设施 · 图形渲染管线 · VSync 调度 · 内存分配器 · 运行时系统 · Cold-Start Optimization · 并发内存问题分析 · 低功耗渲染 · 系统研究工程转化",
+                summary: "端侧操作系统高性能基础设施与图形运行时方向技术专家，长期聚焦 <strong>HarmonyOS 图形渲染管线、内存分配器、并行执行与运行时性能基础设施</strong>。早期在中兴通讯、思科参与 Linux 路由器平台、网络协议和高可靠通信系统研发；加入华为后，长期聚焦 HarmonyOS 图形视窗、内存分配、执行引擎和系统性能底座建设。<br><br>擅长从真实系统性能瓶颈中抽象基础问题，推动技术从机制创新走向规模商用。负责创新团队及菲尔兹创新方向技术孵化，指导并深度参与 ASPLOS和OSDI 三项系统领域顶会研究，其中 2 项技术已在 HarmonyOS 完成商业落地。",
+                focusTitle: "核心技术方向",
+                focus: "端侧 OS 高性能基础设施 · 图形渲染和显示调度 · VSync · 内存分配器 · 运行时系统 · 冷启动优化 · 并行执行 · 低功耗图形 · 系统研究与工程转化",
                 achievementsTitle: "代表性成果",
                 achievements: [
                     {
@@ -141,6 +155,8 @@
                         body: "参与 HarmonyOS 图形流水并行渲染架构、轻量渲染引擎、分布式图形 Foundation、SDF 动效底座等方向建设。提出轻量插帧超分技术方向，指导团队推进 FiSR 商用落地，在 TOP 游戏场景实现单帧功耗优化 <strong>15%+</strong>。"
                     }
                 ],
+                leadershipTitle: "技术领导力",
+                leadership: "担任创新团队 XM，负责菲尔兹创新方向的技术规划、团队建设与关键技术孵化，围绕端侧系统软件、图形运行时和性能基础设施，建立“<strong>多源创新输入 + 人才/技术双蓄水池 + 精英小团队快速验证 + 产业落地</strong>”的创新机制，通过学术界、工业界、高校及内外部专家持续获取技术输入，并深入真实业务场景寻找值得重构的底层机制。<br><br>主导和推动多个大颗粒关键技术从 <strong>0→1</strong> 完成孵化和产业落地，团队累计获得 <strong>6 项创新先锋一等奖</strong>；<strong>多项关键技术已完成产业落地并产生商业价值</strong>，同时形成多篇高潜专利及系统方向顶会研究成果。",
                 experienceTitle: "工作经历",
                 experience: [
                     { company: "华为", period: "2018 - 至今", role: "技术专家，HarmonyOS 高性能基础设施方向" },
@@ -165,8 +181,37 @@
         function toggleLang() {
             currentLang = currentLang === 'zh' ? 'en' : 'zh';
             document.getElementById('btn-lang').innerText = currentLang === 'zh' ? '英文' : '中文';
-            document.getElementById('btn-print').innerText = currentLang === 'zh' ? '打印' : 'Print';
+            document.getElementById('btn-export').innerText = currentLang === 'zh' ? '导出PDF' : 'Export PDF';
             renderResume();
+        }
+
+        function exportPdf() {
+            const oldTitle = document.title;
+            const button = document.getElementById('btn-export');
+            const oldButtonText = button ? button.innerText : '';
+
+            // Chrome / Edge 在“另存为 PDF”时通常以 document.title 作为默认文件名。
+            document.title = '徐超的简历';
+            if (button) {
+                button.innerText = currentLang === 'zh' ? '正在打开导出…' : 'Opening PDF export…';
+                button.disabled = true;
+            }
+
+            // 给浏览器一个渲染周期，确保 @media print 样式和当前简历布局已经稳定。
+            requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                    window.print();
+
+                    // print() 返回后恢复网页标题和按钮状态。
+                    setTimeout(() => {
+                        document.title = oldTitle;
+                        if (button) {
+                            button.innerText = oldButtonText || (currentLang === 'zh' ? '导出PDF' : 'Export PDF');
+                            button.disabled = false;
+                        }
+                    }, 300);
+                });
+            });
         }
 
         function toggleLayout() {
@@ -189,7 +234,7 @@
                     <div class="w-full h-full flex text-dense text-slate-800">
                         <div class="w-[32%] bg-white text-slate-700 h-full pt-6 pb-4.5 px-4.5 border-r border-slate-200 overflow-hidden">
                             <div class="mb-4 text-left">
-                                <div class="avatar-crop w-16 h-16 mb-3 shadow-sm"></div>
+                                <div class="avatar-crop w-16 h-16 mb-3 shadow-sm"><img src="avatar.jpg" alt="Chao Xu" class="avatar-img"></div>
                                 <h1 class="text-xl font-bold text-slate-900 tracking-tight leading-tight">${data.name}</h1>
                                 <p class="text-[10px] text-blue-900 font-bold mt-1 uppercase tracking-wider leading-tight">${data.title}</p>
                             </div>
@@ -235,6 +280,11 @@
                                 </div>
                             </div>
                             
+                            <div class="mb-4">
+                                <h2 class="text-dense-title uppercase tracking-wide text-slate-900 border-b-2 border-slate-900 pb-0.5 mb-2">${data.leadershipTitle}</h2>
+                                <p class="text-slate-600 text-justify leading-relaxed">${data.leadership}</p>
+                            </div>
+                            
                             <div class="pt-1">
                                 <h2 class="text-dense-title uppercase tracking-wide text-slate-900 border-b-2 border-slate-900 pb-0.5 mb-2">${data.experienceTitle}</h2>
                                 <div class="space-y-2">
@@ -257,7 +307,7 @@
                 container.innerHTML = `
                     <div class="w-full h-full p-6 bg-white text-dense text-slate-800 overflow-hidden">
                         <div class="flex items-center justify-center gap-5 border-b-2 border-slate-900 pb-2 mb-3">
-                            <div class="avatar-crop w-16 h-16 shrink-0 shadow-sm"></div>
+                            <div class="avatar-crop w-16 h-16 shrink-0 shadow-sm"><img src="avatar.jpg" alt="Chao Xu" class="avatar-img"></div>
                             <div class="text-left">
                                 <h1 class="text-2xl font-bold text-slate-900 tracking-tight">${data.name}</h1>
                                 <p class="text-xs font-bold text-blue-800 uppercase tracking-wide mt-0.5">${data.title}</p>
@@ -288,6 +338,11 @@
                                     </div>
                                 `).join('')}
                             </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <h2 class="text-dense-title uppercase tracking-wide text-slate-900 bg-slate-100 px-2 py-0.5 mb-1.5">${data.leadershipTitle}</h2>
+                            <p class="text-slate-600 text-justify leading-relaxed px-1">${data.leadership}</p>
                         </div>
 
                         <div class="mb-3">
